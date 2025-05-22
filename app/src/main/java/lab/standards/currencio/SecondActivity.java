@@ -3,17 +3,24 @@ package lab.standards.currencio;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.util.Log; // Added for logging
 
-import com.google.android.gms.ads.AdListener;
+import androidx.annotation.NonNull; // Added for NonNull annotation
+
+import com.google.android.gms.ads.AdError; // Added for AdError
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.ads.FullScreenContentCallback; // Added for FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError; // Added for LoadAdError
+// import com.google.android.gms.ads.InterstitialAd; // Old import, will be replaced by new one below
+import com.google.android.gms.ads.interstitial.InterstitialAd; // New import for InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback; // Added for InterstitialAdLoadCallback
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -50,6 +57,7 @@ public class SecondActivity extends AppCompatActivity {
     public String JPY;
     public String CNY;
     private InterstitialAd mInterstitialAd;
+    private static final String TAG = "SecondActivity"; // Added for logging
 
 
     @Override
@@ -69,16 +77,63 @@ public class SecondActivity extends AppCompatActivity {
             }
         });
 
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(this,"ca-app-pub-6759138947156191/6741017148", adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        // The mInterstitialAd reference will be null until
+                        // an ad is loaded.
+                        mInterstitialAd = interstitialAd;
+                        Log.i(TAG, "onAdLoaded");
+                        // Show the ad
+                        if (mInterstitialAd != null) {
+                            mInterstitialAd.show(SecondActivity.this);
+                        }
 
-        mInterstitialAd = new InterstitialAd(this);
-        mInterstitialAd.setAdUnitId("ca-app-pub-6759138947156191/6741017148");
-        mInterstitialAd.loadAd(new AdRequest.Builder().build());
-        mInterstitialAd.setAdListener(new AdListener() {
-            public void onAdLoaded() {
-                if (mInterstitialAd.isLoaded())
-                    mInterstitialAd.show();
-            }
-        });
+                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback(){
+                            @Override
+                            public void onAdClicked() {
+                                // Called when a click is recorded for an ad.
+                                Log.d(TAG, "Ad was clicked.");
+                            }
+
+                            @Override
+                            public void onAdDismissedFullScreenContent() {
+                                // Called when ad is dismissed.
+                                // Set the ad reference to null so you don't show the ad a second time.
+                                Log.d(TAG, "Ad dismissed fullscreen content.");
+                                mInterstitialAd = null;
+                            }
+
+                            @Override
+                            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                                // Called when ad fails to show.
+                                Log.e(TAG, "Ad failed to show fullscreen content.");
+                                mInterstitialAd = null;
+                            }
+
+                            @Override
+                            public void onAdImpression() {
+                                // Called when an impression is recorded for an ad.
+                                Log.d(TAG, "Ad recorded an impression.");
+                            }
+
+                            @Override
+                            public void onAdShowedFullScreenContent() {
+                                // Called when ad is shown.
+                                Log.d(TAG, "Ad showed fullscreen content.");
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        // Handle the error
+                        Log.d(TAG, loadAdError.toString());
+                        mInterstitialAd = null;
+                    }
+                });
 
         Intent intent = getIntent();
         currency = intent.getStringExtra(MainActivity.EXTRA_CONVERT);
